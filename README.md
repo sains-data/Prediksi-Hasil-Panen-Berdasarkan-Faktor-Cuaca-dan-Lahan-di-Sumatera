@@ -72,10 +72,11 @@ proyek-panen/
 │   ├── silver/
 │   └── gold/
 └── Data_Tanaman_Padi_Sumatera_version_1.csv
+```
 
 ## 👯Team Kelompok 25
-Hizkia Christovita Siahaan - 122140110
-Raid Muhammad Naufal - 122450027
-Izza Lutfia - 122450090
-Dinda Nababan - 122450120
+#### Hizkia Christovita Siahaan - 122140110
+#### Raid Muhammad Naufal - 122450027
+#### Izza Lutfia - 122450090
+#### Dinda Nababan - 122450120
 
