@@ -67,7 +67,8 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 ```bash
 Prediksi-Hasil-Panen-Berdasarkan-Faktor-Cuaca-dan-Lahan-di-Sumatera/
 ├── docker/
-│   └── docker-compose.yml
+│   ├── docker-compose.yml
+│   └── Dockerfile.namenode
 ├── dataset/
 │   ├── bronze/
 │   │	├── bmkg/
