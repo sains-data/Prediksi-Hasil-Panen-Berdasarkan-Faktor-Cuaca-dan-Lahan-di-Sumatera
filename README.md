@@ -18,6 +18,7 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 
 ## 🧱 Arsitektur Sistem (Medallion Architecture)
 
+![Medallion Data Pipeline](https://github.com/user-attachments/assets/a6773297-84d5-41c3-bed7-1c83a986d4bd)
 ### 🟫 Bronze Layer (Raw Zone - HDFS)
 - Menyimpan data mentah dari CSV
 - Tidak dilakukan pembersihan
