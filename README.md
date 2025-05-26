@@ -72,7 +72,7 @@ proyek-panen/
 │   ├── bronze/
 │   ├── silver/
 │   └── gold/
-└── Data_Tanaman_Padi_Sumatera_version_1.csv
+└── Data_Tanaman_Padi_Sumatera.csv
 ```
 
 ## 👯Team Kelompok 25
