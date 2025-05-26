@@ -13,7 +13,7 @@ services:
       - hadoop_namenode:/hadoop/dfs/name
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: bde2020/hadoop-datanode:2.1.0-hadoop3.3.4-java8
     container_name: datanode
     environment:
       - CLUSTER_NAME=bigdata-cluster
@@ -60,7 +60,7 @@ services:
       - hive_pgdata:/var/lib/postgresql/data
 
   spark:
-    image: bitnami/spark:3.3.2
+    image: bitnami/spark:3.5.1
     container_name: spark
     environment:
       - SPARK_MODE=master
@@ -79,7 +79,7 @@ services:
       - hive-metastore
 
   spark-worker:
-    image: bitnami/spark:3.3.2
+    image: bitnami/spark:3.5.1
     container_name: spark-worker
     environment:
       - SPARK_MODE=worker
