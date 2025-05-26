@@ -1,0 +1,94 @@
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    environment:
+      - CLUSTER_NAME=bigdata-cluster
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    environment:
+      - CLUSTER_NAME=bigdata-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "9864:9864"
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    depends_on:
+      - namenode
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    environment:
+      - HIVE_METASTORE_DB_TYPE=postgres
+      - HIVE_METASTORE_HOST=hive-metastore
+      - HIVE_METASTORE_PORT=9083
+      - HIVE_METASTORE_USER=hive
+      - HIVE_METASTORE_PASSWORD=hive
+      - HIVE_METASTORE_DB=hive
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore-postgresql:5432/hive
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionDriverName=org.postgresql.Driver
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionUserName=hive
+      - HIVE_SITE_CONF_javax_jdo_option_ConnectionPassword=hive
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "9083:9083"
+    depends_on:
+      - namenode
+      - datanode
+      - hive-metastore-postgresql
+
+  hive-metastore-postgresql:
+    image: postgres:13
+    container_name: hive-metastore-postgresql
+    environment:
+      - POSTGRES_DB=hive
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive
+    ports:
+      - "5432:5432"
+    volumes:
+      - hive_pgdata:/var/lib/postgresql/data
+
+  spark:
+    image: bitnami/spark:3.3.2
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark
+      - SPARK_MASTER_PORT=7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "4040:4040"
+      - "7077:7077"
+      - "8080:8080"
+    depends_on:
+      - namenode
+      - datanode
+      - hive-metastore
+
+  spark-worker:
+    image: bitnami/spark:3.3.2
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    depends_on:
+      - spark
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  hive_pgdata:
