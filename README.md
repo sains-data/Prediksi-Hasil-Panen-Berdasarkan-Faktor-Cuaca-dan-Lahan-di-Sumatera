@@ -4,13 +4,16 @@
 
 ## 📘 Deskripsi Proyek
 
-Proyek ini membangun sistem data lakehouse berbasis Hadoop dan Spark untuk memprediksi hasil panen padi di wilayah Sumatera.Data diperoleh dari dua sumber utama:
+Proyek ini membangun sistem data lakehouse berbasis Hadoop dan Spark untuk memprediksi hasil panen padi di wilayah Sumatera.
 
-- Prakiraan cuaca harian dari BMKG
+Data diperoleh dari dua sumber utama:
+
+- Data cuaca/iklim dari BMKG
 - Data hasil panen dan luas lahan dari BPS
 
-Kedua data telah digabung menjadi 1 file:
-📂 `Data_Tanaman_Padi_Sumatera.csv`
+Data dari berbagai sumber **masih terpisah** dan berada di dalam folder: 
+
+📂 `./dataset/bronze/`
 
 Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold), lalu digunakan untuk melatih model regresi dengan Apache Spark MLlib.
 
@@ -25,7 +28,7 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 - Menyimpan data mentah dari CSV
 - Tidak dilakukan pembersihan
 - Format: CSV
-- Disimpan di: `hdfs:///bronze/hasil_panen/`
+- Disimpan di: `hdfs:///bronze/bmkg/` & `hdfs:///bronze/bps/`
 
 ### 🪙 Silver Layer (Clean Zone - HDFS + Hive)
 
@@ -70,8 +73,6 @@ Prediksi-Hasil-Panen-Berdasarkan-Faktor-Cuaca-dan-Lahan-di-Sumatera/
 │   │	├── bmkg/
 │   │	└── bps/
 │   ├── silver/
-│   │	├── cuaca/
-│   │	└── hasil_panen/
 │   └── gold/
 ├── scripts/
 │   ├── ingest_data.py
