@@ -55,7 +55,6 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 | ------------------ | ----------------------------- |
 | Hadoop (HDFS)      | Penyimpanan distributed       |
 | Apache Spark       | ETL dan pelatihan model       |
-| Apache Hive        | Eksplorasi SQL data           |
 | Docker Compose     | Containerisasi seluruh sistem |
 | PySpark MLlib      | Model prediktif (regresi)     |
 | Visual Studio Code | Lingkungan pengembangan       |
