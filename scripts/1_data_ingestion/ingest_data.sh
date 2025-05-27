@@ -1,4 +1,4 @@
-DATASET_DIR="/tmp/bronze"
+DATASET_DIR="/dataset/bronze"
 HDFS_DIR="/bronze"
 
 echo "Starting data ingestion..."

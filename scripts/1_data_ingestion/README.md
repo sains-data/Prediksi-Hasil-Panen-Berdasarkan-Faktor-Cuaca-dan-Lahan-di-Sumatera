@@ -4,6 +4,23 @@
 
 Tahap data ingestion adalah proses pertama dalam pipeline data lakehouse yang bertujuan untuk memindahkan data mentah dari local storage ke HDFS (Hadoop Distributed File System) sebagai bronze layer.
 
+## Arsitektur Data Flow
+
+```mermaid
+graph LR
+    A[Local Dataset] --> B[Docker Volume Mount]
+    B --> C[Container /dataset]
+    C --> D[HDFS Bronze Layer]
+    
+    subgraph "Container"
+        C
+    end
+    
+    subgraph "HDFS"
+        D
+    end
+```
+
 ## Implementasi
 
 ### 1. Script Ingest Data (`ingest_data.sh`)
@@ -13,103 +30,185 @@ Script bash ini bertanggung jawab untuk mengupload file CSV dataset ke HDFS deng
 ```bash
 #!/bin/bash
 
-DATASET_DIR="/tmp/bronze"
+DATASET_DIR="/dataset/bronze"
 HDFS_DIR="/bronze"
 ```
 
-#### Konfigurasi
+#### Konfigurasi Path
 
-- **DATASET_DIR**: Direktori sumber data di container (`/tmp/bronze`)
-- **HDFS_DIR**: Direktori tujuan di HDFS (`/bronze`)
+| Variable | Path | Description |
+|----------|------|-------------|
+| **DATASET_DIR** | `/dataset/bronze` | Volume mount dari host ke container |
+| **HDFS_DIR** | `/bronze` | Target directory di HDFS |
 
-#### Fungsi Utama
+> **Note**: Path `/dataset/bronze` adalah hasil mount dari docker-compose.yml:
+> ```yaml
+> volumes:
+>   - ../dataset:/dataset
+> ```
 
-##### 1. Validasi Dataset
+---
+
+### 2. Fungsi Utama
+
+#### Validasi Dataset
 
 ```bash
-if [ !-d"$DATASET_DIR/bmkg" ] || [ !-d"$DATASET_DIR/bps" ]; then
-    echo"Error: Expected subdirectories 'bmkg' and 'bps' not found"
-    exit1
+# Verify dataset structure
+if [ ! -d "$DATASET_DIR/bmkg" ] || [ ! -d "$DATASET_DIR/bps" ]; then
+    echo "Error: Expected subdirectories 'bmkg' and 'bps' not found in $DATASET_DIR"
+    echo "Current directory structure:"
+    ls -la $DATASET_DIR
+    exit 1
 fi
 ```
 
-- Memverifikasi struktur direktori dataset
-- Memastikan folder `bmkg` dan `bps` tersedia
+**Validasi yang dilakukan:**
+- ✅ Memverifikasi direktori `bmkg/` tersedia
+- ✅ Memverifikasi direktori `bps/` tersedia
+- ✅ Menampilkan struktur direktori jika ada error
 
-##### 2. Pembuatan Direktori HDFS
+---
+
+#### Pembuatan Direktori HDFS
 
 ```bash
-hdfsdfs-mkdir-p$HDFS_DIR/bmkg$HDFS_DIR/bps
+# Create HDFS directories
+echo "Creating HDFS directories..."
+hdfs dfs -mkdir -p $HDFS_DIR/bmkg $HDFS_DIR/bps
 ```
 
-- Membuat struktur direktori di HDFS
-- Menggunakan flag `-p` untuk membuat parent directories
+**Struktur direktori yang dibuat:**
+```
+/bronze/
+├── bmkg/     # Data cuaca/iklim dari BMKG
+└── bps/      # Data hasil panen dan luas lahan dari BPS
+```
 
-##### 3. Processing File CSV
+--- 
+
+#### Processing File CSV
 
 ```bash
-forcsv_filein $(find$DATASET_DIR-name"*.csv"); do
-    total=$((total+1))
-    filename=$(basename"$csv_file")
-    rel_path=${csv_file#$DATASET_DIR/}
-    hdfs_path="$HDFS_DIR/$rel_path"  
+# Count and process files
+total=0
+success=0
 
-    ifhdfsdfs-put-f"$csv_file""$hdfs_path"2>/dev/null; then
-        echo"  SUCCESS: Uploaded to HDFS"
-        success=$((success+1))
+echo "Processing CSV files..."
+for csv_file in $(find $DATASET_DIR -name "*.csv"); do
+    total=$((total + 1))
+    filename=$(basename "$csv_file")
+    
+    # Get relative path for HDFS
+    rel_path=${csv_file#$DATASET_DIR/}
+    hdfs_path="$HDFS_DIR/$rel_path"
+    
+    echo "Processing: $filename"
+    echo "  From: $csv_file"
+    echo "  To: $hdfs_path"
+    
+    # Upload to HDFS
+    if hdfs dfs -put -f "$csv_file" "$hdfs_path" 2>/dev/null; then
+        echo "  SUCCESS: Uploaded to HDFS"
+        success=$((success + 1))
     else
-        echo"  ERROR: Failed to upload"
+        echo "  ERROR: Failed to upload"
     fi
 done
 
 ```
 
-**Langkah-langkah processing:**
+**Fitur utama processing:**
 
-1. **File Discovery**: Menggunakan `find` untuk mencari semua file `.csv`
-2. **Path Calculation**: Menghitung relative path untuk struktur HDFS
-3. **Upload Process**: Menggunakan `hdfs dfs -put -f` untuk upload
-4. **Error Handling**: Menangani kegagalan upload dengan logging
+1. **Dynamic File Discovery**: 
+   - Menggunakan `find $DATASET_DIR -name "*.csv"` untuk mencari semua file CSV
+   - Tidak hardcode nama file atau direktori spesifik
+   - Otomatis detect file baru yang ditambahkan
 
-##### 4. Summary dan Verifikasi
+2. **Path Calculation**:
+   - `rel_path=${csv_file#$DATASET_DIR/}` - menghitung relative path
+   - `hdfs_path="$HDFS_DIR/$rel_path"` - membangun HDFS target path
+   - Mempertahankan struktur direktori original
+
+3. **Upload Process**:
+   - `hdfs dfs -put -f` - force overwrite jika file sudah ada
+   - `2>/dev/null` - suppress error output untuk clean logging
+   - Real-time feedback untuk setiap file
+
+4. **Counter Variables**:
+   - `total` - menghitung total file yang diproses
+   - `success` - menghitung file yang berhasil diupload
+
+#### Summary dan Verifikasi
 
 ```bash
-echo"SUMMARY:"
-echo"  Total files: $total"
-echo"  Successful: $success"
-echo"  Failed: $((total - success))"
+# Summary
+echo ""
+echo "SUMMARY:"
+echo "  Dataset directory used: $DATASET_DIR"
+echo "  Total files: $total"
+echo "  Successful: $success"
+echo "  Failed: $((total - success))"
 
-hdfsdfs-ls-R$HDFS_DIR
+# List HDFS contents
+if [ $success -gt 0 ]; then
+    echo ""
+    echo "HDFS Contents:"
+    hdfs dfs -ls -R $HDFS_DIR
+fi
 
+echo "Data ingestion completed"
 ```
 
-### 2. Cara Penggunaan
+**Summary yang diberikan:**
+- ✅ Dataset directory yang digunakan
+- ✅ Total file yang diproses
+- ✅ Jumlah file berhasil diupload
+- ✅ Jumlah file yang gagal (calculated)
+- ✅ Listing complete HDFS structure (jika ada file berhasil)
 
-#### Persiapan
+### 3. Cara Penggunaan
+
+#### Persiapan Environment
 
 ```bash
-# 1. Copy dataset ke container (pada root)
-docker cp dataset/bronze namenode:/tmp/bronze/
+# 1. Pastikan containers sudah running
+cd docker
+docker-compose ps
 
-# 2. Copy script ke container
-docker cp scripts/1_ingest_data/ingest_data.sh namenode:/tmp/ingest_data.sh
+# 2. Verifikasi dataset tersedia di volume mount
+docker exec -it namenode ls -la /dataset/bronze/
+docker exec -it namenode ls -la /dataset/bronze/bmkg/
+docker exec -it namenode ls -la /dataset/bronze/bps/
+
+# 3. Verifikasi script tersedia
+docker exec -it namenode ls -la /scripts/1_data_ingestion/
 ```
 
-#### Eksekusi
+#### Eksekusi Script
 
 ```bash
-# 3. Jalankan script
-docker exec -it namenode bash /tmp/ingest_data.sh
+# Jalankan script ingest data
+docker exec -it namenode bash /scripts/1_data_ingestion/ingest_data.sh
 ```
 
-#### Verifikasi
+#### Verifikasi Hasil
 
 ```bash
-# 4. Cek hasil di HDFS
+# Cek struktur HDFS
 docker exec -it namenode hdfs dfs -ls -R /bronze
+
+# Cek jumlah file dan direktori
+docker exec -it namenode hdfs dfs -count /bronze
+
+# Cek ukuran total data
+docker exec -it namenode hdfs dfs -du -h /bronze
+
+# Sample data check
+docker exec -it namenode hdfs dfs -cat /bronze/bmkg/aceh.csv | head -5
 ```
 
-### 3. Struktur Data Hasil
+### 4. Struktur Data Hasil
 
 Setelah ingestion berhasil, struktur data di HDFS akan menjadi:
 
@@ -131,84 +230,59 @@ Setelah ingestion berhasil, struktur data di HDFS akan menjadi:
 
 ```
 
-### 4. Error Handling
+> **Note**: Script akan memproses semua file `.csv` yang ditemukan dalam direktori dataset, sehingga jika ada file tambahan, akan otomatis ter-upload.
 
-Script dilengkapi dengan error handling untuk:
+### 5. Error Handling & Troubleshooting
 
-- **Directory validation**: Memastikan direktori dataset exist
-- **Upload failures**: Menangani kegagalan upload individual file
-- **Permission issues**: Menggunakan appropriate user privileges
-- **Progress tracking**: Menampilkan progress dan summary
+#### Common Issues
 
-### 5. Monitoring
+| Error | Cause | Solution |
+|-------|-------|----------|
+| **Directory not found** | Dataset tidak ter-mount | Cek docker-compose volumes |
+| **No CSV files found** | Dataset kosong atau wrong path | Verifikasi isi `/dataset/bronze/` |
+| **Permission denied** | HDFS permission issue | Set permissions: `hdfs dfs -chmod 777 /bronze` |
+| **Connection refused** | NameNode tidak running | Restart: `docker-compose restart namenode` |
+| **Partial failures** | Individual file issues | Check file permissions & HDFS space |
 
-Output script memberikan informasi:
-
-- Total file yang diproses
-- Jumlah file berhasil diupload
-- Jumlah file yang gagal
-- Listing final structure di HDFS
-
-### 6. Troubleshooting
-
-#### Common Issues:
-
-1. **Permission Denied**: Gunakan `docker exec -u root`
-2. **Directory Not Found**: Pastikan dataset sudah di-copy ke container
-3. **HDFS Connection**: Pastikan namenode container running
-
-#### Debug Commands:
+#### Debug Commands
 
 ```bash
-# Cek status HDFS
-docker exec -it namenode hdfs dfs admin -report
+# Test file discovery
+docker exec -it namenode find /dataset/bronze -name "*.csv"
 
-# Cek file permissions
-docker exec -it namenode ls -la /tmp/bronze/
+# Test manual upload
+docker exec -it namenode hdfs dfs -put /dataset/bronze/bmkg/aceh.csv /test.csv
+docker exec -it namenode hdfs dfs -rm /test.csv
 
-# Manual upload test
-docker exec -it namenode hdfs dfs -put /tmp/bronze/bmkg/aceh.csv /test.csv
+# Check HDFS space
+docker exec -it namenode hdfs dfs -df -h
+
+# Check container resources
+docker stats namenode
+```
+
+#### Recovery Commands
+
+```bash
+# Reset dan re-run
+docker exec -it namenode hdfs dfs -rm -r /bronze
+docker exec -it namenode bash /scripts/1_data_ingestion/ingest_data.sh
+
+# Selective re-upload (example)
+docker exec -it namenode hdfs dfs -rm /bronze/bmkg/aceh.csv
+docker exec -it namenode bash /scripts/1_data_ingestion/ingest_data.sh
 ```
 
 ---
 
-## Next Steps
+## 🚀 Next Steps
 
 Setelah data ingestion selesai, data siap untuk tahap berikutnya dalam pipeline:
 
-### 2. **Staging & Cleaning** (`bronze_to_silver.py`)
-
-- **Data Cleaning**: Menghapus duplikasi dan data tidak valid
-- **Data Standardization**: Normalisasi format tanggal, angka, dan teks
-- **Schema Validation**: Memastikan konsistensi struktur data
-
-### 2. **Hive Metastore Registration** (`register_to_hive.py`)
-
-- **Table Registration**: Mendaftarkan tabel silver ke Hive Metastore
-- **Schema Management**: Mengelola metadata dan schema evolution
-- **Partition Strategy**: Implementasi partitioning untuk optimasi query
-- **Data Catalog**: Membuat catalog data untuk discovery
-
-### 3. **Feature Engineering** (`silver_to_gold_features.py`)
-
-- **Feature Creation**: Membuat fitur baru dari data cuaca dan lahan
-- **Aggregation**: Menghitung statistik agregat (rata-rata, total, trend)
-- **Time Series Features**: Ekstraksi seasonal patterns dan trends
-- **Gold Layer**: Pembuatan data marts untuk analytics dan ML
-
-### 4. **Machine Learning Pipeline** (`train_predict_model.py`)
-
-- **Model Training**: Melatih model prediksi hasil panen
-- **Feature Selection**: Memilih fitur terbaik untuk prediksi
-- **Cross Validation**: Validasi performa model
-- **Model Persistence**: Menyimpan model terlatih
-
-### 5. **Model Evaluation** (`evaluate_model.py`)
-
-- **Performance Metrics**: Menghitung MAE, RMSE, R²
-- **Prediction Analysis**: Analisis akurasi prediksi
-- **Model Comparison**: Perbandingan berbagai algoritma
-- **Reporting**: Generate laporan evaluasi model
+2. **Data Processing**: Jalankan `bronze_to_silver.py`
+3. **Feature Engineering**: Jalankan pipeline silver to gold
+4. **Model Training**: Jalankan model machine learning
+5. **Evaluation**: Analisis hasil model
 
 ---
 
