@@ -19,7 +19,7 @@ class SilverToGoldProcessor:
         # Paths sesuai struktur HDFS yang sudah dibuat sebelumnya
         self.bps_path = "hdfs://namenode:9000/silver/bps_agriculture_data"
         self.bmkg_path = "hdfs://namenode:9000/silver/bmkg_weather_data"
-        self.padi_csv_path = "hdfs://namenode:9000/silver/padi_features/Data_Tanaman_Padi_Sumatera.csv"
+        self.padi_csv_path = "hdfs://namenode:9000/bronze/Data_Tanaman_Padi_Sumatera.csv"
         self.gold_path = "hdfs://namenode:9000/gold/padi_features"
         
         logger.info("Spark session initialized for Silver to Gold processing")
