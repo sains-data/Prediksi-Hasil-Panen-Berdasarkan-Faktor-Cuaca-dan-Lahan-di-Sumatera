@@ -11,6 +11,7 @@ services:
       - "9000:9000"
     volumes:
       - hadoop_namenode:/opt/hadoop/logs
+    user: root
 
   datanode:
     build:
@@ -24,6 +25,7 @@ services:
       - "9864:9864"
     volumes:
       - hadoop_datanode:/opt/hadoop/logs
+    user: root
     depends_on:
       - namenode
 
@@ -75,8 +77,6 @@ services:
       - "4040:4040"
       - "7077:7077"
       - "8080:8080"
-    volumes:
-      - ../dataset/bronze:/bronze_local
     depends_on:
       - namenode
       - datanode
