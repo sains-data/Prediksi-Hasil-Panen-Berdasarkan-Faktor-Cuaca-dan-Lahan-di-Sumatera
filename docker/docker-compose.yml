@@ -75,10 +75,13 @@ services:
       - "4040:4040"
       - "7077:7077"
       - "8080:8080"
+    volumes:
+      - ../dataset/bronze:/bronze_local
     depends_on:
       - namenode
       - datanode
-      - hive-metastore
+      - hive-metastore-postgresql
+    
 
   spark-worker:
     image: bitnami/spark:3.5.1

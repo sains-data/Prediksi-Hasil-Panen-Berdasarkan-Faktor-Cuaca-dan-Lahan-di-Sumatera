@@ -1,25 +1,24 @@
 import os
-import subprocess
+from pyspark.sql import SparkSession
 
-DATASET_DIR = "../dataset/bronze"
-HDFS_TARGET_DIR = "/bronze"
-
-def upload_to_hdfs(local_path, hdfs_path):
-    # Buat folder di HDFS jika belum ada
-    subprocess.run(["hdfs", "dfs", "-mkdir", "-p", hdfs_path], check=True)
-    # Upload file ke HDFS
-    subprocess.run(["hdfs", "dfs", "-put", "-f", local_path, hdfs_path], check=True)
+DATASET_DIR = "/bronze_local"
+HDFS_TARGET_DIR = "hdfs://namenode:9000/bronze"
 
 def main():
+    spark = SparkSession.builder.appName("IngestDataBronze").getOrCreate()
+
     for root, dirs, files in os.walk(DATASET_DIR):
         for file in files:
-            local_file = os.path.join(root, file)
-            # Path relatif dari dataset/bronze
-            rel_dir = os.path.relpath(root, DATASET_DIR)
-            # Simpan ke HDFS dengan struktur yang sama
-            hdfs_dir = os.path.join(HDFS_TARGET_DIR, rel_dir).replace("\\", "/")
-            print(f"Uploading {local_file} to {hdfs_dir} ...")
-            upload_to_hdfs(local_file, hdfs_dir)
+            if file.endswith(".csv"):
+                local_file = os.path.join(root, file)
+                rel_dir = os.path.relpath(root, DATASET_DIR)
+                hdfs_dir = os.path.join(HDFS_TARGET_DIR, rel_dir).replace("\\", "/")
+                hdfs_path = f"{hdfs_dir}/{file.replace('.csv', '.parquet')}"
+                print(f"Ingesting {local_file} to {hdfs_path} ...")
+                df = spark.read.option("header", True).csv(local_file)
+                df.write.mode("overwrite").parquet(hdfs_path)
+
+    spark.stop()
 
 if __name__ == "__main__":
     main()
