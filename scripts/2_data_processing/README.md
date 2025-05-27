@@ -24,7 +24,7 @@ graph LR
 
 ## Output Data
 - **HDFS Silver Layer**: `hdfs://namenode:9000/silver/`
-- **Local Parquet Files**: `../dataset/silver/`
+- **Local Parquet Files**: `./dataset/silver/`
 
 ---
 
@@ -62,18 +62,18 @@ docker exec -it namenode hdfs dfs -ls -R /silver
 
 ```bash
 # Buat direktori output jika belum ada
-mkdir -p "../dataset/silver"
+mkdir -p "./dataset/silver"
 
 # Export BMKG weather data dari HDFS ke lokal
 docker exec -it namenode hdfs dfs -get /silver/bmkg_weather_data /tmp/bmkg_weather_data
-docker cp namenode:/tmp/bmkg_weather_data "../dataset/silver/"
+docker cp namenode:/tmp/bmkg_weather_data "./dataset/silver/"
 
 # Export BPS agriculture data dari HDFS ke lokal
 docker exec -it namenode hdfs dfs -get /silver/bps_agriculture_data /tmp/bps_agriculture_data
-docker cp namenode:/tmp/bps_agriculture_data "../dataset/silver/"
+docker cp namenode:/tmp/bps_agriculture_data "./dataset/silver/"
 
 # Verify local files
-ls -la "../dataset/silver/"
+dir ".\dataset\silver\"
 ```
 
 ## 📊 Data Transformations
@@ -149,7 +149,7 @@ ls -la "../dataset/silver/"
 ## 📁 Output Structure
 
 ```
-../dataset/silver/
+./dataset/silver/
 ├── bmkg_weather_data/
 │   ├── part-00000-xxx.snappy.parquet
 │   └── _SUCCESS
@@ -227,7 +227,7 @@ import pandas as pd
 
 print('=== Local BMKG Parquet Verification ===')
 try:
-    bmkg_files = pd.read_parquet('..\dataset\silver\bmkg_weather_data')
+    bmkg_files = pd.read_parquet('.\dataset\silver\bmkg_weather_data')
     print(f'BMKG records: {len(bmkg_files)}')
     print(f'BMKG columns: {list(bmkg_files.columns)}')
     print(f'BMKG provinces: {bmkg_files[\"province\"].nunique()}')
@@ -236,7 +236,7 @@ except Exception as e:
 
 print('\n=== Local BPS Parquet Verification ===')
 try:
-    bps_files = pd.read_parquet('..\dataset\silver\bps_agriculture_data')
+    bps_files = pd.read_parquet('.\dataset\silver\bps_agriculture_data')
     print(f'BPS records: {len(bps_files)}')
     print(f'BPS columns: {list(bps_files.columns)}')
     print(bps_files.head())
@@ -273,12 +273,12 @@ docker exec -it namenode hdfs dfs -chmod -R 755 /silver
 **4. Export to Local Fails**
 ```bash
 # Solution: Create output directory
-mkdir -p "../dataset/silver"
+mkdir -p "./dataset/silver"
 
 # Alternative: Direct copy with proper permissions
 docker exec -it namenode hdfs dfs -copyToLocal /silver/bmkg_weather_data /tmp/
 docker exec -it namenode chmod -R 755 /tmp/bmkg_weather_data
-docker cp namenode:/tmp/bmkg_weather_data "../dataset/silver/"
+docker cp namenode:/tmp/bmkg_weather_data "./dataset/silver/"
 ```
 
 ## 🚀 Next Steps
