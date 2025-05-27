@@ -1,0 +1,8 @@
+,Error_Percentage,Error_Percentage,Error_Percentage,Actual_Produksi,Actual_Produksi,Actual_Produksi
+,mean,std,count,mean,min,max
+Production_Range,,,,,,
+Very Low,11.24,13.34,112193,386556.09,26533.0,747430.0
+Low,7.43,6.03,87380,1028105.05,747443.0,1382905.0
+Medium,14.36,12.07,10,1757888.8,1478712.0,2180754.0
+High,16.48,11.12,3,2448320.3,2368390.0,2488641.91
+Very High,7.6,4.02,5,3300339.8,2971286.0,3631039.0

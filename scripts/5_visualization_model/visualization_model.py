@@ -17,6 +17,10 @@ from pyspark.sql.types import *
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.evaluation import RegressionEvaluator
 
+# Import Python's built-in functions to avoid conflict with PySpark
+from builtins import max as python_max
+from builtins import min as python_min
+
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore')
 
@@ -46,9 +50,10 @@ class ModelVisualizationAnalyzer:
         self.predictions_path = "hdfs://namenode:9000/predictions/rice_production"
         self.models_path = "hdfs://namenode:9000/models/rice_production"
         
-        # Local output paths
-        self.output_dir = "/tmp/model_visualizations"
-        self.reports_dir = "/tmp/model_reports"
+        # Local output paths - CHANGED: Use local directory structure
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.output_dir = os.path.join(script_dir, "visualizations")
+        self.reports_dir = os.path.join(script_dir, "reports")
         
         # Create output directories
         os.makedirs(self.output_dir, exist_ok=True)
@@ -119,7 +124,7 @@ class ModelVisualizationAnalyzer:
         fig, axes = plt.subplots(2, 2, figsize=(15, 12))
         fig.suptitle('Dataset Overview Analysis', fontsize=16, fontweight='bold')
         
-        # Volume comparison
+        # Volume comparison - FIX: Use python_max instead of max
         volumes = {
             'Gold Layer': len(gold_pd),
             'Synthetic Data': data['synthetic'].count(),
@@ -131,9 +136,10 @@ class ModelVisualizationAnalyzer:
         axes[0, 0].set_ylabel('Number of Records')
         axes[0, 0].tick_params(axis='x', rotation=45)
         
-        # Add value labels on bars
+        # Add value labels on bars - FIX: Use python_max
+        max_volume = python_max(volumes.values())
         for i, (k, v) in enumerate(volumes.items()):
-            axes[0, 0].text(i, v + max(volumes.values()) * 0.01, f'{v:,}', 
+            axes[0, 0].text(i, v + max_volume * 0.01, f'{v:,}', 
                            ha='center', va='bottom', fontweight='bold')
         
         # 2. Production distribution comparison
@@ -275,9 +281,9 @@ class ModelVisualizationAnalyzer:
         axes[0, 0].scatter(predictions_pd['Actual_Produksi'], predictions_pd['Predicted_Produksi'], 
                           alpha=0.6, s=20, color='blue')
         
-        # Perfect prediction line
-        min_val = min(predictions_pd['Actual_Produksi'].min(), predictions_pd['Predicted_Produksi'].min())
-        max_val = max(predictions_pd['Actual_Produksi'].max(), predictions_pd['Predicted_Produksi'].max())
+        # Perfect prediction line - FIX: Use python_min and python_max
+        min_val = python_min(predictions_pd['Actual_Produksi'].min(), predictions_pd['Predicted_Produksi'].min())
+        max_val = python_max(predictions_pd['Actual_Produksi'].max(), predictions_pd['Predicted_Produksi'].max())
         axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect Prediction')
         
         axes[0, 0].set_xlabel('Actual Production')
@@ -375,7 +381,7 @@ class ModelVisualizationAnalyzer:
         
         models = list(model_metrics.keys())
         
-        # 1. RMSE Comparison
+        # 1. RMSE Comparison - FIX: Use python_max
         rmse_values = [model_metrics[model]['RMSE'] for model in models]
         bars1 = axes[0, 0].bar(models, rmse_values, color='lightcoral', edgecolor='darkred')
         axes[0, 0].set_title('Root Mean Square Error (RMSE)')
@@ -383,19 +389,21 @@ class ModelVisualizationAnalyzer:
         axes[0, 0].tick_params(axis='x', rotation=45)
         
         # Add value labels
+        max_rmse = python_max(rmse_values)
         for bar, value in zip(bars1, rmse_values):
-            axes[0, 0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(rmse_values) * 0.01, 
+            axes[0, 0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + max_rmse * 0.01, 
                            f'{value:,.0f}', ha='center', va='bottom', fontweight='bold')
         
-        # 2. MAE Comparison
+        # 2. MAE Comparison - FIX: Use python_max
         mae_values = [model_metrics[model]['MAE'] for model in models]
         bars2 = axes[0, 1].bar(models, mae_values, color='lightblue', edgecolor='darkblue')
         axes[0, 1].set_title('Mean Absolute Error (MAE)')
         axes[0, 1].set_ylabel('MAE')
         axes[0, 1].tick_params(axis='x', rotation=45)
         
+        max_mae = python_max(mae_values)
         for bar, value in zip(bars2, mae_values):
-            axes[0, 1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(mae_values) * 0.01, 
+            axes[0, 1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + max_mae * 0.01, 
                            f'{value:,.0f}', ha='center', va='bottom', fontweight='bold')
         
         # 3. R² Comparison
@@ -410,15 +418,16 @@ class ModelVisualizationAnalyzer:
             axes[1, 0].text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
                            f'{value:.4f}', ha='center', va='bottom', fontweight='bold')
         
-        # 4. Mean Error Percentage Comparison
+        # 4. Mean Error Percentage Comparison - FIX: Use python_max
         error_pct_values = [model_metrics[model]['Mean_Error_Pct'] for model in models]
         bars4 = axes[1, 1].bar(models, error_pct_values, color='lightyellow', edgecolor='orange')
         axes[1, 1].set_title('Mean Error Percentage')
         axes[1, 1].set_ylabel('Error Percentage (%)')
         axes[1, 1].tick_params(axis='x', rotation=45)
         
+        max_error_pct = python_max(error_pct_values)
         for bar, value in zip(bars4, error_pct_values):
-            axes[1, 1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(error_pct_values) * 0.01, 
+            axes[1, 1].text(bar.get_x() + bar.get_width()/2, bar.get_height() + max_error_pct * 0.01, 
                            f'{value:.2f}%', ha='center', va='bottom', fontweight='bold')
         
         plt.tight_layout()
@@ -454,9 +463,9 @@ class ModelVisualizationAnalyzer:
             }
         )
         
-        # Add perfect prediction line
-        min_val = min(predictions_pd['Actual_Produksi'].min(), predictions_pd['Predicted_Produksi'].min())
-        max_val = max(predictions_pd['Actual_Produksi'].max(), predictions_pd['Predicted_Produksi'].max())
+        # Add perfect prediction line - FIX: Use python_min and python_max
+        min_val = python_min(predictions_pd['Actual_Produksi'].min(), predictions_pd['Predicted_Produksi'].min())
+        max_val = python_max(predictions_pd['Actual_Produksi'].max(), predictions_pd['Predicted_Produksi'].max())
         fig.add_trace(go.Scatter(
             x=[min_val, max_val], 
             y=[min_val, max_val],
