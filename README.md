@@ -30,10 +30,10 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 - Format: CSV
 - Disimpan di: `hdfs:///bronze/bmkg/` & `hdfs:///bronze/bps/`
 
-### 🪙 Silver Layer (Clean Zone - HDFS + Hive)
+### 🪙 Silver Layer (Clean Zone - HDFS)
 
 - Data dibersihkan dengan Spark SQL (drop null & duplicates)
-- Format: Parquet
+- Format: Parquet atau ORC
 - Disimpan di: `hdfs:///silver/hasil_panen/`
 
 ### 🏅 Gold Layer (Curated Zone - HDFS)
