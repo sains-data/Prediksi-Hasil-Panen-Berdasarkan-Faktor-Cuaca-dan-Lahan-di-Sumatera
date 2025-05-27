@@ -12,11 +12,21 @@ RUN apt-get update && apt-get install -y \
     rsync \
     && rm -rf /var/lib/apt/lists/*
 
+# Install PySpark and py4j
+RUN pip3 install pyspark==3.5.1 py4j
+
 # Download and install Hadoop 3.4.1
 ENV HADOOP_VERSION=3.4.1
 ENV HADOOP_HOME=/opt/hadoop
 ENV HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 ENV PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+
+# Set Hadoop user environment variables
+ENV HDFS_NAMENODE_USER=root
+ENV HDFS_DATANODE_USER=root
+ENV HDFS_SECONDARYNAMENODE_USER=root
+ENV YARN_RESOURCEMANAGER_USER=root
+ENV YARN_NODEMANAGER_USER=root
 
 RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz \
     && tar -xzf hadoop-$HADOOP_VERSION.tar.gz \
@@ -32,7 +42,7 @@ RUN mkdir -p $HADOOP_HOME/logs \
     && mkdir -p $HADOOP_HOME/hadoop_data/hdfs/datanode \
     && chown -R hadoop:hadoop $HADOOP_HOME
 
-# Configure Hadoop
+# Configure Hadoop with permissions disabled
 RUN echo '<?xml version="1.0" encoding="UTF-8"?>' > $HADOOP_CONF_DIR/core-site.xml \
     && echo '<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>' >> $HADOOP_CONF_DIR/core-site.xml \
     && echo '<configuration>' >> $HADOOP_CONF_DIR/core-site.xml \
@@ -53,13 +63,22 @@ RUN echo '<?xml version="1.0" encoding="UTF-8"?>' > $HADOOP_CONF_DIR/hdfs-site.x
     && echo '    <name>dfs.namenode.name.dir</name>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
     && echo '    <value>/opt/hadoop/hadoop_data/hdfs/namenode</value>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
     && echo '  </property>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
+    && echo '  <property>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
+    && echo '    <name>dfs.permissions.enabled</name>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
+    && echo '    <value>false</value>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
+    && echo '  </property>' >> $HADOOP_CONF_DIR/hdfs-site.xml \
     && echo '</configuration>' >> $HADOOP_CONF_DIR/hdfs-site.xml
 
 USER hadoop
 WORKDIR $HADOOP_HOME
 
-# Create startup script with auto-format
+# Create startup script with auto-format and environment variables
 RUN echo '#!/bin/bash' > /opt/hadoop/start-namenode.sh \
+    && echo 'export HDFS_NAMENODE_USER=root' >> /opt/hadoop/start-namenode.sh \
+    && echo 'export HDFS_DATANODE_USER=root' >> /opt/hadoop/start-namenode.sh \
+    && echo 'export HDFS_SECONDARYNAMENODE_USER=root' >> /opt/hadoop/start-namenode.sh \
+    && echo 'export YARN_RESOURCEMANAGER_USER=root' >> /opt/hadoop/start-namenode.sh \
+    && echo 'export YARN_NODEMANAGER_USER=root' >> /opt/hadoop/start-namenode.sh \
     && echo 'if [ ! -d "/opt/hadoop/hadoop_data/hdfs/namenode/current" ]; then' >> /opt/hadoop/start-namenode.sh \
     && echo '  echo "Formatting NameNode..."' >> /opt/hadoop/start-namenode.sh \
     && echo '  hdfs namenode -format -force' >> /opt/hadoop/start-namenode.sh \

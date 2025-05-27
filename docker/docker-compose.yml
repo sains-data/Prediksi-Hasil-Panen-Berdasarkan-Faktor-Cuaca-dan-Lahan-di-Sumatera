@@ -6,11 +6,16 @@ services:
     container_name: namenode
     environment:
       - CLUSTER_NAME=bigdata-cluster
+      - HDFS_CONF_dfs_permissions_enabled=false
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HADOOP_USER_NAME=root
     ports:
       - "9870:9870"
       - "9000:9000"
     volumes:
       - hadoop_namenode:/opt/hadoop/logs
+      - ../dataset:/dataset
+      - ../scripts:/scripts
     user: root
 
   datanode:
@@ -21,6 +26,8 @@ services:
     environment:
       - CLUSTER_NAME=bigdata-cluster
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_permissions_enabled=false
+      - HADOOP_USER_NAME=root
     ports:
       - "9864:9864"
     volumes:
@@ -44,6 +51,7 @@ services:
       - HIVE_SITE_CONF_javax_jdo_option_ConnectionUserName=hive
       - HIVE_SITE_CONF_javax_jdo_option_ConnectionPassword=hive
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_permissions_enabled=false
     ports:
       - "9083:9083"
     depends_on:
@@ -70,18 +78,33 @@ services:
       - SPARK_MODE=master
       - SPARK_MASTER_HOST=spark
       - SPARK_MASTER_PORT=7077
-      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_MEMORY=4G
       - SPARK_WORKER_CORES=2
+      - SPARK_DRIVER_MEMORY=2G
+      - SPARK_EXECUTOR_MEMORY=2G
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_permissions_enabled=false
+      # Spark Hadoop configurations
+      - SPARK_CONF_spark_hadoop_fs_defaultFS=hdfs://namenode:9000
+      - SPARK_CONF_spark_hadoop_dfs_client_use_datanode_hostname=true
+      - SPARK_CONF_spark_hadoop_dfs_permissions_enabled=false
+      - SPARK_CONF_spark_sql_adaptive_enabled=true
+      - SPARK_CONF_spark_sql_adaptive_coalescePartitions_enabled=true
+      # User settings
+      - HADOOP_USER_NAME=root
+      - SPARK_USER=root
     ports:
       - "4040:4040"
       - "7077:7077"
       - "8080:8080"
+    volumes:
+      - ../dataset:/dataset
+      - ../scripts:/scripts
     depends_on:
       - namenode
       - datanode
       - hive-metastore-postgresql
-    
+    user: root
 
   spark-worker:
     image: bitnami/spark:3.5.1
@@ -89,11 +112,18 @@ services:
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark:7077
-      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_MEMORY=4G
       - SPARK_WORKER_CORES=2
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HDFS_CONF_dfs_permissions_enabled=false
+      - HADOOP_USER_NAME=root
+      - SPARK_USER=root
+    volumes:
+      - ../dataset:/dataset
+      - ../scripts:/scripts
     depends_on:
       - spark
+    user: root
 
 volumes:
   hadoop_namenode:

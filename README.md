@@ -11,7 +11,7 @@ Data diperoleh dari dua sumber utama:
 - Data cuaca/iklim dari BMKG
 - Data hasil panen dan luas lahan dari BPS
 
-Data dari berbagai sumber **masih terpisah** dan berada di dalam folder: 
+Data dari berbagai sumber **masih terpisah** dan berada di dalam folder:
 
 📂 `./dataset/bronze/`
 
@@ -68,6 +68,7 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 Prediksi-Hasil-Panen-Berdasarkan-Faktor-Cuaca-dan-Lahan-di-Sumatera/
 ├── docker/
 │   ├── docker-compose.yml
+│   ├── Dockerfile.datanode
 │   └── Dockerfile.namenode
 ├── dataset/
 │   ├── bronze/
@@ -76,10 +77,15 @@ Prediksi-Hasil-Panen-Berdasarkan-Faktor-Cuaca-dan-Lahan-di-Sumatera/
 │   ├── silver/
 │   └── gold/
 ├── scripts/
-│   ├── ingest_data.py
-│   ├── bronze_to_silver.py
-│   ├── register_to_hive.py
-│   ├── silver_to_gold_features.py
+│   ├── 1_ingest_data/
+│   │	├── ingest_data.py
+│   │	└── README.md   
+│   ├── 2_staging_cleaning/
+│   │	├── bronze_to_silver.py
+│   │	└── README.md
+│   ├── 3_transformation_aggregation/
+│   │	├── silver_to_gold_features.py
+│   │	└── README.md
 │   ├── train_predict_model.py
 │   └── evaluate_model.py
 └── README.md

@@ -160,21 +160,14 @@ Output script memberikan informasi:
 #### Debug Commands:
 
 ```bash
-
 # Cek status HDFS
-
-dockerexec-itnamenodehdfsdfsadmin-report
-
+docker exec -it namenode hdfs dfs admin -report
 
 # Cek file permissions
-
-dockerexec-itnamenodels-la/tmp/bronze/
-
+docker exec -it namenode ls -la /tmp/bronze/
 
 # Manual upload test
-
-dockerexec-itnamenodehdfsdfs-put/tmp/bronze/bmkg/aceh.csv/test.csv
-
+docker exec -it namenode hdfs dfs -put /tmp/bronze/bmkg/aceh.csv /test.csv
 ```
 
 ---
