@@ -1,0 +1,16 @@
+FROM bitnami/spark:3.5.1
+
+USER root
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    py4j \
+    pyspark==3.5.1 \
+    pandas \
+    numpy
+
+# Switch back to spark user
+USER 1001
+
+# Set working directory
+WORKDIR /opt/bitnami/spark

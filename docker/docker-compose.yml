@@ -17,6 +17,8 @@ services:
       - ../dataset:/dataset
       - ../scripts:/scripts
     user: root
+    networks:
+      - bigdata-network
 
   datanode:
     build:
@@ -32,9 +34,26 @@ services:
       - "9864:9864"
     volumes:
       - hadoop_datanode:/opt/hadoop/logs
+      - ../dataset:/dataset
     user: root
     depends_on:
       - namenode
+    networks:
+      - bigdata-network
+
+  hive-metastore-postgresql:
+    image: postgres:13
+    container_name: hive-metastore-postgresql
+    environment:
+      - POSTGRES_DB=hive
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive
+    ports:
+      - "5432:5432"
+    volumes:
+      - hive_pgdata:/var/lib/postgresql/data
+    networks:
+      - bigdata-network
 
   hive-metastore:
     image: bde2020/hive:2.3.2-postgresql-metastore
@@ -58,21 +77,13 @@ services:
       - namenode
       - datanode
       - hive-metastore-postgresql
-
-  hive-metastore-postgresql:
-    image: postgres:13
-    container_name: hive-metastore-postgresql
-    environment:
-      - POSTGRES_DB=hive
-      - POSTGRES_USER=hive
-      - POSTGRES_PASSWORD=hive
-    ports:
-      - "5432:5432"
-    volumes:
-      - hive_pgdata:/var/lib/postgresql/data
+    networks:
+      - bigdata-network
 
   spark:
-    image: bitnami/spark:3.5.1
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
     container_name: spark
     environment:
       - SPARK_MODE=master
@@ -84,13 +95,11 @@ services:
       - SPARK_EXECUTOR_MEMORY=2G
       - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
       - HDFS_CONF_dfs_permissions_enabled=false
-      # Spark Hadoop configurations
       - SPARK_CONF_spark_hadoop_fs_defaultFS=hdfs://namenode:9000
       - SPARK_CONF_spark_hadoop_dfs_client_use_datanode_hostname=true
       - SPARK_CONF_spark_hadoop_dfs_permissions_enabled=false
       - SPARK_CONF_spark_sql_adaptive_enabled=true
       - SPARK_CONF_spark_sql_adaptive_coalescePartitions_enabled=true
-      # User settings
       - HADOOP_USER_NAME=root
       - SPARK_USER=root
     ports:
@@ -103,11 +112,14 @@ services:
     depends_on:
       - namenode
       - datanode
-      - hive-metastore-postgresql
     user: root
-
+    networks:
+      - bigdata-network
+  
   spark-worker:
-    image: bitnami/spark:3.5.1
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
     container_name: spark-worker
     environment:
       - SPARK_MODE=worker
@@ -124,8 +136,14 @@ services:
     depends_on:
       - spark
     user: root
-
+    networks:
+      - bigdata-network
+  
 volumes:
   hadoop_namenode:
   hadoop_datanode:
   hive_pgdata:
+
+networks:
+  bigdata-network:
+    driver: bridge
