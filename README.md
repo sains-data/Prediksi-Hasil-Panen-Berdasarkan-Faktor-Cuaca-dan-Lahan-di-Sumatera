@@ -35,7 +35,6 @@ Seluruh data diproses melalui arsitektur Medallion (Bronze → Silver → Gold),
 - Data dibersihkan dengan Spark SQL (drop null & duplicates)
 - Format: Parquet
 - Disimpan di: `hdfs:///silver/hasil_panen/`
-- Terdaftar sebagai tabel eksternal Hive
 
 ### 🏅 Gold Layer (Curated Zone - HDFS)
 
