@@ -72,22 +72,28 @@ Prediksi-Hasil-Panen-Berdasarkan-Faktor-Cuaca-dan-Lahan-di-Sumatera/
 │   └── Dockerfile.namenode
 ├── dataset/
 │   ├── bronze/
-│   │	├── bmkg/
-│   │	└── bps/
+│   │	  ├── bmkg/
+│   │	  └── bps/
 │   ├── silver/
 │   └── gold/
 ├── scripts/
-│   ├── 1_ingest_data/
-│   │	├── ingest_data.py
-│   │	└── README.md   
-│   ├── 2_staging_cleaning/
-│   │	├── bronze_to_silver.py
-│   │	└── README.md
-│   ├── 3_transformation_aggregation/
-│   │	├── silver_to_gold_features.py
-│   │	└── README.md
-│   ├── train_predict_model.py
-│   └── evaluate_model.py
+│   ├── 1_data_ingestion/
+│   │	  ├── ingest_data.py
+│   │	  └── README.md   
+│   ├── 2_data_processing/
+│   │	  ├── bronze_to_silver.py
+│   │	  └── README.md
+│   ├── 3_feature_engineering/
+│   │	  ├── silver_to_gold_features.py
+│   │	  └── README.md
+│   ├── 4_model_training/
+│   │   ├── train_predict_model.py
+│   │	  └── README.md
+│   ├── 5_evaluation/
+│   │   ├── evaluate_model.py
+│   └── 6_visualization/
+│       ├── visualization_model.py
+│   	  └── README.md
 └── README.md
 ```
 
