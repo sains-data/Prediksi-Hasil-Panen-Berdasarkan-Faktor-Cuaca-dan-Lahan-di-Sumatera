@@ -2,7 +2,7 @@
 
 ## Overview
 
-Tahap data ingestion adalah proses pertama dalam pipeline data lakehouse yang bertujuan untuk memindahkan data mentah dari local storage ke HDFS (Hadoop Distributed File System) sebagai bronze layer.
+Tahap data ingestion adalah proses pertama dalam pipeline data lakehouse yang bertujuan untuk memindahkan data mentah dari local storage ke HDFS (Hadoop Distributed File System) sebagai bronze layer. Tahap ini memproses tiga sumber data utama: data cuaca BMKG, data pertanian BPS, dan dataset terintegrasi dari Kaggle.
 
 ## Arsitektur Data Flow
 
@@ -12,14 +12,48 @@ graph LR
     B --> C[Container /dataset]
     C --> D[HDFS Bronze Layer]
     
+    subgraph "Data Sources"
+        A1[BMKG Weather Data] --> A
+        A2[BPS Agriculture Data] --> A
+        A3[Kaggle Integrated Data] --> A
+    end
+    
     subgraph "Container"
         C
     end
     
     subgraph "HDFS"
-        D
+        D --> D1[/bronze/bmkg/]
+        D --> D2[/bronze/bps/]
+        D --> D3[/bronze/]
     end
 ```
+
+---
+
+## Data Sources
+
+### 1. BMKG Weather Data (Raw)
+- **Source**: [Badan Meteorologi, Klimatologi, dan Geofisika](https://dataonline.bmkg.go.id/)
+- **Format**: Separate CSV files per province
+- **Content**: Daily weather measurements (temperature, humidity, rainfall, etc.)
+- **Coverage**: 10 provinces in Sumatera
+- **Time Period**: 2023 (daily data)
+
+### 2. BPS Agriculture Data (Raw)
+- **Source**: [Badan Pusat Statistik](https://www.bps.go.id/id/statistics-table/2/MTQ5OCMy/luas-panen-produksi-dan-produktivitas-padi-menurut-provinsi.html) 
+- **Format**: Single CSV file
+- **Content**: Annual harvest area, production, and productivity
+- **Coverage**: National/provincial level
+- **Time Period**: 2023 (annual data)
+
+### 3. **Kaggle Integrated Dataset (Clean)**
+- **Source**: [Kaggle - Dataset Tanaman Padi Sumatera, Indonesia](https://www.kaggle.com/datasets/ardikasatria/datasettanamanpadisumatera)
+- **File**: `Data_Tanaman_Padi_Sumatera.csv`
+- **Format**: Single integrated CSV file
+- **Content**: Historical rice production with weather factors
+- **Coverage**: 8 provinces in Sumatera
+- **Time Period**: 1993-2020 (27 years of historical data)
 
 ## Implementasi
 
@@ -66,6 +100,7 @@ fi
 **Validasi yang dilakukan:**
 - ✅ Memverifikasi direktori `bmkg/` tersedia
 - ✅ Memverifikasi direktori `bps/` tersedia
+- ✅ Mengecek keberadaan file Kaggle `Data_Tanaman_Padi_Sumatera.csv`
 - ✅ Menampilkan struktur direktori jika ada error
 
 ---
@@ -82,7 +117,8 @@ hdfs dfs -mkdir -p $HDFS_DIR/bmkg $HDFS_DIR/bps
 ```
 /bronze/
 ├── bmkg/     # Data cuaca/iklim dari BMKG
-└── bps/      # Data hasil panen dan luas lahan dari BPS
+├── bps/      # Data hasil panen dan luas lahan dari BPS
+└── Data_Tanaman_Padi_Sumatera.csv      # Kaggle Integrated Dataset
 ```
 
 --- 
@@ -225,8 +261,9 @@ Setelah ingestion berhasil, struktur data di HDFS akan menjadi:
 │   ├── sumbar.csv
 │   ├── sumsel.csv
 │   └── sumut.csv
-└── bps/
-    └── Luas_Panen_Produksi_dan_Produktivitas_Padi_2023.csv
+├── bps/
+│   └── Luas_Panen_Produksi_dan_Produktivitas_Padi_2023.csv
+└── Data_Tanaman_Padi_Sumatera.csv
 
 ```
 
